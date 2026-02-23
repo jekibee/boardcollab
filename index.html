@@ -6,14 +6,10 @@
     <title>Papan Kolaborasi Real-time</title>
     <style>
         body {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
         }
         
         .header {
@@ -23,6 +19,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            z-index: 100;
+            position: relative;
         }
         
         .room-info {
@@ -56,6 +54,66 @@
         #canvas-container {
             height: calc(100vh - 61px);
             width: 100%;
+            position: relative;
+        }
+        
+        /* Toolbar tambahan */
+        .drawing-toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 40px;
+            padding: 8px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+        
+        .tool-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        .color-picker::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
         }
     </style>
 </head>
@@ -68,7 +126,9 @@
         </div>
     </div>
     
-    <div id="canvas-container"></div>
+    <div id="canvas-container">
+        <!-- Toolbar akan ditambahkan oleh JavaScript -->
+    </div>
 
     <!-- Load library yang diperlukan -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -77,17 +137,16 @@
     <script src="https://unpkg.com/@tldraw/tldraw@2.0.0-alpha.19/dist/index.js"></script>
     
     <script>
-        // Konfigurasi room - ganti dengan room ID yang kamu inginkan
-        // Setiap room ID akan menjadi papan yang berbeda
+        // Konfigurasi room
         const urlParams = new URLSearchParams(window.location.search);
         const ROOM_ID = urlParams.get('room') || 'papan-utama-' + Math.random().toString(36).substring(2, 8);
         
-        // Update URL tanpa reload untuk menyimpan room ID
+        // Update URL
         const newUrl = window.location.pathname + '?room=' + ROOM_ID;
         window.history.replaceState({}, '', newUrl);
         document.getElementById('roomDisplay').textContent = 'Room: ' + ROOM_ID;
 
-        // Fungsi untuk copy link
+        // Fungsi copy link
         window.copyRoomLink = function() {
             const link = window.location.href;
             navigator.clipboard.writeText(link).then(() => {
@@ -95,61 +154,124 @@
             });
         };
 
-        // Inisialisasi Liveblocks untuk kolaborasi real-time
-        // Ini menggunakan API key demo dari Liveblocks - gratis untuk development
+        // Inisialisasi Liveblocks
         const client = new Liveblocks.Client({
-            publicApiKey: 'pk_dev_YJYbYw_VKQhE3VvX7WzJ7FqZqXvLqLqLqLqLqLqL' // Demo API key
+            publicApiKey: 'pk_dev_YJYbYw_VKQhE3VvX7WzJ7FqZqXvLqLqLqLqLqLqL'
         });
 
-        // Bergabung ke room
-        const { room, leave } = client.enterRoom(ROOM_ID, {
-            initialPresence: { 
-                name: 'User ' + Math.floor(Math.random() * 1000),
-                cursor: null 
-            }
-        });
+        // Setup tldraw dengan cara yang benar
+        async function initBoard() {
+            const container = document.getElementById('canvas-container');
+            
+            // Bergabung ke room
+            const { room, leave } = client.enterRoom(ROOM_ID, {
+                initialPresence: { 
+                    name: 'User ' + Math.floor(Math.random() * 1000),
+                    cursor: null 
+                }
+            });
 
-        // Inisialisasi tldraw dengan store dari Liveblocks
-        const container = document.getElementById('canvas-container');
-        
-        // Setup kolaborasi dengan tldraw dan Liveblocks [citation:6]
-        const store = new tldraw.TLDrawStore();
-        
-        // Buat komponen tldraw
-        const app = new tldraw.Tldraw(container, {
-            store: store,
-            onMount: (editor) => {
-                console.log('Papan siap digunakan!');
-                
-                // Sinkronisasi dengan Liveblocks
-                room.subscribe('others', (others) => {
-                    // Update kursor user lain
-                    others.forEach(other => {
-                        if (other.presence.cursor) {
-                            editor.updateUser(other.connectionId, {
-                                cursor: other.presence.cursor,
-                                name: other.presence.name
+            // Buat toolbar
+            const toolbar = document.createElement('div');
+            toolbar.className = 'drawing-toolbar';
+            toolbar.innerHTML = `
+                <button class="tool-btn" id="tool-select" title="Select">🔽</button>
+                <button class="tool-btn active" id="tool-draw" title="Draw">✏️</button>
+                <button class="tool-btn" id="tool-text" title="Text">📝</button>
+                <button class="tool-btn" id="tool-rect" title="Rectangle">□</button>
+                <button class="tool-btn" id="tool-ellipse" title="Ellipse">○</button>
+                <button class="tool-btn" id="tool-arrow" title="Arrow">→</button>
+                <input type="color" id="color-picker" class="color-picker" value="#000000">
+                <button class="tool-btn" id="clear-btn" title="Clear">🗑️</button>
+            `;
+            container.appendChild(toolbar);
+
+            // Setup tldraw editor
+            const editor = new tldraw.Tldraw(container, {
+                tools: ['select', 'draw', 'text', 'rectangle', 'ellipse', 'arrow'],
+                onMount: () => {
+                    console.log('Editor mounted');
+                    
+                    // Set default tool ke draw
+                    editor.selectTool('draw');
+                    
+                    // Sinkronisasi dengan Liveblocks
+                    room.subscribe('others', (others) => {
+                        others.forEach(other => {
+                            if (other.presence.cursor) {
+                                // Update posisi kursor user lain
+                                console.log('User cursor:', other.presence.cursor);
+                            }
+                        });
+                    });
+
+                    // Kirim posisi kursor
+                    editor.on('pointer-move', () => {
+                        if (editor.inputs) {
+                            room.updatePresence({
+                                cursor: editor.inputs.currentPagePoint
                             });
                         }
                     });
-                });
+                }
+            });
 
-                // Kirim posisi kursor sendiri
-                editor.on('pointer-move', () => {
-                    room.updatePresence({
-                        cursor: editor.inputs.currentScreenPoint
-                    });
+            // Event listeners untuk toolbar
+            document.getElementById('tool-select').addEventListener('click', () => {
+                editor.selectTool('select');
+                setActiveTool('select');
+            });
+            
+            document.getElementById('tool-draw').addEventListener('click', () => {
+                editor.selectTool('draw');
+                setActiveTool('draw');
+            });
+            
+            document.getElementById('tool-text').addEventListener('click', () => {
+                editor.selectTool('text');
+                setActiveTool('text');
+            });
+            
+            document.getElementById('tool-rect').addEventListener('click', () => {
+                editor.selectTool('rectangle');
+                setActiveTool('rect');
+            });
+            
+            document.getElementById('tool-ellipse').addEventListener('click', () => {
+                editor.selectTool('ellipse');
+                setActiveTool('ellipse');
+            });
+            
+            document.getElementById('tool-arrow').addEventListener('click', () => {
+                editor.selectTool('arrow');
+                setActiveTool('arrow');
+            });
+            
+            document.getElementById('color-picker').addEventListener('input', (e) => {
+                editor.setColor(e.target.value);
+            });
+            
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if (confirm('Hapus semua gambar?')) {
+                    editor.clear();
+                }
+            });
+
+            function setActiveTool(tool) {
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.remove('active');
                 });
+                document.getElementById(`tool-${tool}`).classList.add('active');
             }
-        });
 
-        // Simpan ke URL params
-        console.log('Room siap: ' + ROOM_ID);
-        
-        // Bersihkan saat halaman ditutup
-        window.addEventListener('beforeunload', () => {
-            leave();
-        });
+            // Bersihkan saat halaman ditutup
+            window.addEventListener('beforeunload', () => {
+                leave();
+            });
+        }
+
+        // Jalankan inisialisasi
+        initBoard().catch(console.error);
     </script>
 </body>
 </html>
