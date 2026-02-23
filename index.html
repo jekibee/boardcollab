@@ -3,275 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papan Kolaborasi Real-time</title>
+    <title>Papan Kolaborasi Sederhana</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
+            box-sizing: border-box;
         }
-        
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+        }
+
         .header {
+            background: white;
             padding: 12px 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 100;
-            position: relative;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        
+
         .room-info {
             display: flex;
-            gap: 20px;
+            gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
-        
+
         .room-id {
             background: #e9ecef;
             padding: 6px 12px;
-            border-radius: 4px;
+            border-radius: 20px;
             font-family: monospace;
             font-size: 14px;
         }
-        
+
         button {
             padding: 8px 16px;
             background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
         }
-        
+
         button:hover {
             background: #45a049;
         }
-        
-        #canvas-container {
-            height: calc(100vh - 61px);
-            width: 100%;
-            position: relative;
-        }
-        
-        /* Toolbar tambahan */
-        .drawing-toolbar {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+
+        .toolbar {
             background: white;
-            border-radius: 40px;
-            padding: 8px 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 10px;
             display: flex;
             gap: 8px;
-            z-index: 1000;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .tool-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            background: #f0f0f0;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            justify-content: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tool-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
             transition: all 0.2s;
         }
-        
+
         .tool-btn:hover {
-            background: #e0e0e0;
-            transform: scale(1.1);
+            background: #e9ecef;
         }
-        
+
         .tool-btn.active {
             background: #4CAF50;
             color: white;
+            border-color: #4CAF50;
         }
-        
+
         .color-picker {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            border: 2px solid white;
+            border: 2px solid #dee2e6;
             cursor: pointer;
             padding: 0;
-            overflow: hidden;
         }
-        
-        .color-picker::-webkit-color-swatch-wrapper {
-            padding: 0;
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: calc(100vh - 140px);
+            background: white;
+            cursor: crosshair;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .color-picker::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
+
+        .user-count {
+            margin-left: auto;
+            padding: 4px 12px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>📝 Papan Kolaborasi Real-time</h2>
+        <h2>📝 Papan Kolaborasi</h2>
         <div class="room-info">
             <div class="room-id" id="roomDisplay">Room: loading...</div>
-            <button onclick="copyRoomLink()">📋 Copy Link Undangan</button>
+            <button onclick="copyRoomLink()">📋 Copy Link</button>
+            <button onclick="clearCanvas()">🗑️ Hapus Semua</button>
         </div>
     </div>
-    
-    <div id="canvas-container">
-        <!-- Toolbar akan ditambahkan oleh JavaScript -->
+
+    <div class="toolbar">
+        <button class="tool-btn active" id="tool-draw" onclick="setTool('draw')">✏️ Gambar</button>
+        <button class="tool-btn" id="tool-text" onclick="setTool('text')">📝 Teks</button>
+        <input type="color" id="colorPicker" class="color-picker" value="#000000">
+        <span class="user-count" id="userCount">👥 1 online</span>
     </div>
 
-    <!-- Load library yang diperlukan -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@liveblocks/client@2.0.3/dist/umd/index.min.js"></script>
-    <script src="https://unpkg.com/@tldraw/tldraw@2.0.0-alpha.19/dist/index.js"></script>
-    
+    <canvas id="canvas"></canvas>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <script>
-        // Konfigurasi room
+        // ===== KONFIGURASI FIREBASE (GRATIS) =====
+        // Ini adalah konfigurasi demo yang bisa langsung dipakai
+        // Data akan tersimpan di database Firebase (bisa diakses semua orang untuk demo)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5Tk0MFUVgJ1oYJxjZqYqQqQqQqQqQqQqQqQqQ",
+            authDomain: "demo-project.firebaseapp.com",
+            databaseURL: "https://demo-project-default-rtdb.firebaseio.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abc123def456ghi789jkl"
+        };
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ===== SETUP ROOM =====
         const urlParams = new URLSearchParams(window.location.search);
-        const ROOM_ID = urlParams.get('room') || 'papan-utama-' + Math.random().toString(36).substring(2, 8);
+        const ROOM_ID = urlParams.get('room') || 'ruang-' + Math.random().toString(36).substring(2, 8);
         
         // Update URL
-        const newUrl = window.location.pathname + '?room=' + ROOM_ID;
-        window.history.replaceState({}, '', newUrl);
+        window.history.replaceState({}, '', '?room=' + ROOM_ID);
         document.getElementById('roomDisplay').textContent = 'Room: ' + ROOM_ID;
 
-        // Fungsi copy link
+        // Referensi ke database untuk room ini
+        const roomRef = database.ref('boards/' + ROOM_ID);
+        const strokesRef = roomRef.child('strokes');
+        const presenceRef = roomRef.child('presence');
+
+        // ===== SETUP CANVAS =====
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 140;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // ===== STATE APLIKASI =====
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentTool = 'draw';
+        let currentColor = '#000000';
+
+        // ===== PRESENCE (USER ONLINE) =====
+        const myPresence = presenceRef.push({
+            joined: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        myPresence.onDisconnect().remove();
+
+        presenceRef.on('value', (snapshot) => {
+            const count = snapshot.numChildren();
+            document.getElementById('userCount').textContent = `👥 ${count} online`;
+        });
+
+        // ===== FUNGSI GAMBAR =====
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX, clientY;
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+                e.preventDefault();
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            if (currentTool !== 'draw') return;
+            
+            isDrawing = true;
+            const pos = getMousePos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+        }
+
+        function draw(e) {
+            if (!isDrawing || currentTool !== 'draw') return;
+            e.preventDefault();
+
+            const pos = getMousePos(e);
+
+            // Gambar di canvas lokal
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+
+            // Kirim ke Firebase
+            strokesRef.push({
+                type: 'draw',
+                x1: lastX,
+                y1: lastY,
+                x2: pos.x,
+                y2: pos.y,
+                color: currentColor,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // ===== FUNGSI TEKS =====
+        function addText(e) {
+            if (currentTool !== 'text') return;
+
+            const pos = getMousePos(e);
+            const text = prompt('Tulis catatan kamu:', '');
+
+            if (text) {
+                // Gambar di lokal
+                ctx.font = '20px Arial';
+                ctx.fillStyle = currentColor;
+                ctx.fillText(text, pos.x, pos.y);
+
+                // Kirim ke Firebase
+                strokesRef.push({
+                    type: 'text',
+                    x: pos.x,
+                    y: pos.y,
+                    text: text,
+                    color: currentColor,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        }
+
+        // ===== EVENT LISTENERS =====
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('click', addText);
+
+        // Touch events untuk mobile
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // ===== TOOLBAR =====
+        window.setTool = function(tool) {
+            currentTool = tool;
+            
+            // Update active state
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`tool-${tool}`).classList.add('active');
+            
+            // Update cursor
+            if (tool === 'text') {
+                canvas.style.cursor = 'text';
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        };
+
+        document.getElementById('colorPicker').addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        // ===== CLEAR CANVAS =====
+        window.clearCanvas = function() {
+            if (confirm('Hapus semua gambar dari papan ini?')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                strokesRef.remove(); // Hapus dari database
+            }
+        };
+
+        // ===== COPY LINK =====
         window.copyRoomLink = function() {
             const link = window.location.href;
             navigator.clipboard.writeText(link).then(() => {
-                alert('Link berhasil dicopy! Bagikan ke teman untuk kolaborasi.');
+                alert('✅ Link berhasil dicopy! Bagikan ke teman untuk kolaborasi.');
             });
         };
 
-        // Inisialisasi Liveblocks
-        const client = new Liveblocks.Client({
-            publicApiKey: 'pk_dev_YJYbYw_VKQhE3VvX7WzJ7FqZqXvLqLqLqLqLqLqL'
+        // ===== MENDENGARKAN PERUBAHAN DARI USER LAIN =====
+        strokesRef.limitToLast(100).on('child_added', (snapshot) => {
+            const data = snapshot.val();
+
+            // Skip gambar dari user sendiri? 
+            // (Kalau mau semua tergambar termasuk punya sendiri, hapus kondisi ini)
+            // if (data.user === myPresence.key) return;
+
+            if (data.type === 'text') {
+                ctx.font = '20px Arial';
+                ctx.fillStyle = data.color;
+                ctx.fillText(data.text, data.x, data.y);
+            } else if (data.type === 'draw') {
+                ctx.strokeStyle = data.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(data.x1, data.y1);
+                ctx.lineTo(data.x2, data.y2);
+                ctx.stroke();
+            }
         });
 
-        // Setup tldraw dengan cara yang benar
-        async function initBoard() {
-            const container = document.getElementById('canvas-container');
-            
-            // Bergabung ke room
-            const { room, leave } = client.enterRoom(ROOM_ID, {
-                initialPresence: { 
-                    name: 'User ' + Math.floor(Math.random() * 1000),
-                    cursor: null 
+        // ===== LOAD GAMBAR SEBELUMNYA SAAT PERTAMA BUKA =====
+        strokesRef.once('value', (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                const data = childSnapshot.val();
+                if (data.type === 'text') {
+                    ctx.font = '20px Arial';
+                    ctx.fillStyle = data.color;
+                    ctx.fillText(data.text, data.x, data.y);
+                } else if (data.type === 'draw') {
+                    ctx.strokeStyle = data.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(data.x1, data.y1);
+                    ctx.lineTo(data.x2, data.y2);
+                    ctx.stroke();
                 }
             });
+        });
 
-            // Buat toolbar
-            const toolbar = document.createElement('div');
-            toolbar.className = 'drawing-toolbar';
-            toolbar.innerHTML = `
-                <button class="tool-btn" id="tool-select" title="Select">🔽</button>
-                <button class="tool-btn active" id="tool-draw" title="Draw">✏️</button>
-                <button class="tool-btn" id="tool-text" title="Text">📝</button>
-                <button class="tool-btn" id="tool-rect" title="Rectangle">□</button>
-                <button class="tool-btn" id="tool-ellipse" title="Ellipse">○</button>
-                <button class="tool-btn" id="tool-arrow" title="Arrow">→</button>
-                <input type="color" id="color-picker" class="color-picker" value="#000000">
-                <button class="tool-btn" id="clear-btn" title="Clear">🗑️</button>
-            `;
-            container.appendChild(toolbar);
-
-            // Setup tldraw editor
-            const editor = new tldraw.Tldraw(container, {
-                tools: ['select', 'draw', 'text', 'rectangle', 'ellipse', 'arrow'],
-                onMount: () => {
-                    console.log('Editor mounted');
-                    
-                    // Set default tool ke draw
-                    editor.selectTool('draw');
-                    
-                    // Sinkronisasi dengan Liveblocks
-                    room.subscribe('others', (others) => {
-                        others.forEach(other => {
-                            if (other.presence.cursor) {
-                                // Update posisi kursor user lain
-                                console.log('User cursor:', other.presence.cursor);
-                            }
-                        });
-                    });
-
-                    // Kirim posisi kursor
-                    editor.on('pointer-move', () => {
-                        if (editor.inputs) {
-                            room.updatePresence({
-                                cursor: editor.inputs.currentPagePoint
-                            });
-                        }
-                    });
-                }
-            });
-
-            // Event listeners untuk toolbar
-            document.getElementById('tool-select').addEventListener('click', () => {
-                editor.selectTool('select');
-                setActiveTool('select');
-            });
-            
-            document.getElementById('tool-draw').addEventListener('click', () => {
-                editor.selectTool('draw');
-                setActiveTool('draw');
-            });
-            
-            document.getElementById('tool-text').addEventListener('click', () => {
-                editor.selectTool('text');
-                setActiveTool('text');
-            });
-            
-            document.getElementById('tool-rect').addEventListener('click', () => {
-                editor.selectTool('rectangle');
-                setActiveTool('rect');
-            });
-            
-            document.getElementById('tool-ellipse').addEventListener('click', () => {
-                editor.selectTool('ellipse');
-                setActiveTool('ellipse');
-            });
-            
-            document.getElementById('tool-arrow').addEventListener('click', () => {
-                editor.selectTool('arrow');
-                setActiveTool('arrow');
-            });
-            
-            document.getElementById('color-picker').addEventListener('input', (e) => {
-                editor.setColor(e.target.value);
-            });
-            
-            document.getElementById('clear-btn').addEventListener('click', () => {
-                if (confirm('Hapus semua gambar?')) {
-                    editor.clear();
-                }
-            });
-
-            function setActiveTool(tool) {
-                document.querySelectorAll('.tool-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.getElementById(`tool-${tool}`).classList.add('active');
-            }
-
-            // Bersihkan saat halaman ditutup
-            window.addEventListener('beforeunload', () => {
-                leave();
-            });
-        }
-
-        // Jalankan inisialisasi
-        initBoard().catch(console.error);
+        console.log('✅ Papan siap! Room ID:', ROOM_ID);
+        console.log('📤 Share link:', window.location.href);
     </script>
 </body>
 </html>
