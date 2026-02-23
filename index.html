@@ -3,518 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mural Komunitas Transparan</title>
+    <title>Mural Bersama</title>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+            background: #1a1a1a;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
-            overflow: hidden;
-        }
-
-        .header {
-            background: white;
+        
+        .top-bar {
+            background: #2d2d2d;
+            color: white;
             padding: 12px 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            position: relative;
-            z-index: 100;
+            border-bottom: 1px solid #404040;
         }
-
-        h2 {
-            color: #1a1a1a;
-            font-size: 1.5rem;
-        }
-
+        
         .room-info {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .room-id {
-            background: #e9ecef;
+            background: #404040;
             padding: 6px 12px;
             border-radius: 20px;
             font-family: monospace;
             font-size: 14px;
-            color: #495057;
         }
-
+        
         button {
-            padding: 8px 16px;
             background: #4CAF50;
             color: white;
             border: none;
+            padding: 8px 20px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
             font-weight: 500;
-            transition: background 0.2s;
-            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
         }
-
-        button:hover {
-            background: #45a049;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
-        }
-
-        .toolbar {
-            background: white;
-            padding: 10px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center;
-            border-bottom: 1px solid #dee2e6;
-            position: relative;
-            z-index: 100;
-        }
-
-        .tool-btn {
-            padding: 8px 16px;
-            background: #f8f9fa;
-            color: #333;
-            border: 1px solid #dee2e6;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .tool-btn:hover {
-            background: #e9ecef;
-            transform: translateY(-1px);
-        }
-
-        .tool-btn.active {
-            background: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-
-        .color-picker {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid #dee2e6;
-            cursor: pointer;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        .color-picker::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-
-        .color-picker::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
-        }
-
+        
         #canvas {
             display: block;
-            width: 100%;
-            height: calc(100vh - 140px);
+            width: 100vw;
+            height: calc(100vh - 60px);
             background: white;
             cursor: crosshair;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            touch-action: none; /* Penting untuk mobile */
+            touch-action: none;
         }
-
-        .user-count {
-            margin-left: auto;
-            padding: 6px 16px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
-        }
-
-        .footer-note {
+        
+        .toolbar {
             position: fixed;
-            bottom: 10px;
-            right: 20px;
-            background: rgba(0,0,0,0.6);
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 40px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        
+        .tool-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: #404040;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn.active {
+            background: #4CAF50;
+            transform: scale(1.1);
+        }
+        
+        #colorPicker {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .user-badge {
+            background: #4CAF50;
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
+            position: fixed;
+            top: 70px;
+            right: 20px;
             z-index: 1000;
-            pointer-events: none;
-        }
-
-        @media (max-width: 600px) {
-            h2 { font-size: 1.2rem; }
-            .tool-btn { padding: 6px 12px; }
-            .user-count { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>🎨 Mural Komunitas Transparan</h2>
-        <div class="room-info">
-            <div class="room-id" id="roomDisplay">Room: loading...</div>
-            <button onclick="copyRoomLink()">📋 Copy Link</button>
-            <button onclick="clearCanvas()">🗑️ Hapus Semua</button>
-        </div>
+    <div class="top-bar">
+        <div>🎨 Mural Bersama</div>
+        <div class="room-info" id="roomDisplay"></div>
+        <button onclick="copyLink()">📋 Bagikan Link</button>
     </div>
-
-    <div class="toolbar">
-        <button class="tool-btn active" id="tool-draw" onclick="setTool('draw')">
-            ✏️ Gambar
-        </button>
-        <button class="tool-btn" id="tool-text" onclick="setTool('text')">
-            📝 Teks
-        </button>
-        <input type="color" id="colorPicker" class="color-picker" value="#000000" title="Pilih warna">
-        <span class="user-count" id="userCount">👥 0 online</span>
-    </div>
-
+    
     <canvas id="canvas"></canvas>
-    <div class="footer-note" id="connectionStatus">🟢 Terhubung</div>
+    
+    <div class="toolbar">
+        <button class="tool-btn active" id="toolDraw" onclick="setTool('draw')">✏️</button>
+        <button class="tool-btn" id="toolText" onclick="setTool('text')">📝</button>
+        <input type="color" id="colorPicker" value="#000000">
+        <button class="tool-btn" onclick="clearCanvas()">🗑️</button>
+    </div>
+    
+    <div class="user-badge" id="userCount">👥 1 online</div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
+    <!-- Gunakan layanan pihak ketiga untuk real-time -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-        // ============================================
-        // KONFIGURASI FIREBASE (Demo - Gratis)
-        // ============================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyB5Tk0MFUVgJ1oYJxjZqYqQqQqQqQqQqQqQqQqQ",
-            authDomain: "demo-project.firebaseapp.com",
-            databaseURL: "https://demo-project-default-rtdb.firebaseio.com",
-            projectId: "demo-project",
-            storageBucket: "demo-project.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abc123def456ghi789jkl"
-        };
-
-        // Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // ============================================
-        // SETUP ROOM (Setiap link punya ruang sendiri)
-        // ============================================
+        // ===== KONFIGURASI ROOM =====
         const urlParams = new URLSearchParams(window.location.search);
-        // Jika tidak ada parameter room, buat random
-        const ROOM_ID = urlParams.get('room') || 'mural-' + Math.random().toString(36).substring(2, 10);
+        const ROOM_ID = urlParams.get('room') || 'ruang-' + Math.random().toString(36).substring(2, 8);
         
-        // Update URL biar konsisten
-        const newUrl = window.location.pathname + '?room=' + ROOM_ID;
-        window.history.replaceState({}, '', newUrl);
+        window.history.replaceState({}, '', '?room=' + ROOM_ID);
         document.getElementById('roomDisplay').textContent = '🚪 ' + ROOM_ID;
 
-        // Referensi Firebase untuk room ini
-        const roomRef = database.ref('mural_komunitas/' + ROOM_ID);
-        const strokesRef = roomRef.child('goresan'); // Semua goresan dan teks
-        const presenceRef = roomRef.child('kehadiran'); // User online
-
-        // ============================================
-        // SETUP CANVAS
-        // ============================================
+        // ===== SETUP CANVAS =====
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 140;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        // ============================================
-        // STATE APLIKASI
-        // ============================================
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-        let currentTool = 'draw'; // 'draw' atau 'text'
-        let currentColor = '#000000';
-        let myPresenceId = null;
-
-        // ============================================
-        // KEHADIRAN (User Online)
-        // ============================================
-        function updateUserCount() {
-            presenceRef.once('value').then((snapshot) => {
-                const count = snapshot.numChildren();
-                document.getElementById('userCount').textContent = `👥 ${count} online`;
-                document.getElementById('connectionStatus').textContent = '🟢 Terhubung (' + count + ' online)';
-            });
-        }
-
-        // Daftarkan kehadiran
-        const presenceData = {
-            joined: firebase.database.ServerValue.TIMESTAMP,
-            userAgent: navigator.userAgent.substring(0, 50)
-        };
         
-        const presencePromise = presenceRef.push(presenceData);
-        presencePromise.then((ref) => {
-            myPresenceId = ref.key;
-            // Hapus kehadiran saat disconnect
-            ref.onDisconnect().remove();
-            updateUserCount();
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 60;
+        
+        window.addEventListener('resize', () => {
+            const oldData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 60;
+            ctx.putImageData(oldData, 0, 0);
         });
 
-        // Update jumlah user setiap ada perubahan
-        presenceRef.on('value', (snapshot) => {
-            const count = snapshot.numChildren();
-            document.getElementById('userCount').textContent = `👥 ${count} online`;
-            document.getElementById('connectionStatus').textContent = '🟢 Terhubung (' + count + ' online)';
-        });
+        // ===== STATE =====
+        let isDrawing = false;
+        let lastX, lastY;
+        let currentTool = 'draw';
+        let currentColor = '#000000';
 
-        // ============================================
-        // FUNGSI GAMBAR (Mouse & Touch)
-        // ============================================
+        // ===== GAMBAR =====
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-
+            
             let clientX, clientY;
             if (e.touches) {
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
-                e.preventDefault();
             } else {
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
-
+            
             return {
                 x: (clientX - rect.left) * scaleX,
                 y: (clientY - rect.top) * scaleY
             };
         }
 
-        function startDrawing(e) {
-            if (currentTool !== 'draw') return;
-            
-            isDrawing = true;
-            const pos = getMousePos(e);
-            lastX = pos.x;
-            lastY = pos.y;
-            
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-        }
-
-        function draw(e) {
-            if (!isDrawing || currentTool !== 'draw') return;
-            e.preventDefault();
-
-            const pos = getMousePos(e);
-
-            // Gambar di canvas lokal
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-
-            // Kirim ke Firebase untuk user lain
-            strokesRef.push({
-                t: 'd', // type: draw
-                x1: lastX,
-                y1: lastY,
-                x2: pos.x,
-                y2: pos.y,
-                c: currentColor,
-                ts: firebase.database.ServerValue.TIMESTAMP,
-                u: myPresenceId // asal user (opsional)
-            });
-
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-
-        function stopDrawing() {
-            isDrawing = false;
-        }
-
-        // ============================================
-        // FUNGSI TEKS
-        // ============================================
-        function addText(e) {
-            if (currentTool !== 'text') return;
-
-            const pos = getMousePos(e);
-            const text = prompt('✏️ Tulis pesan untuk mural:', '');
-
-            if (text && text.trim() !== '') {
-                // Gambar di canvas lokal
-                ctx.font = '20px Arial';
-                ctx.fillStyle = currentColor;
-                ctx.fillText(text, pos.x, pos.y);
-
-                // Kirim ke Firebase
-                strokesRef.push({
-                    t: 't', // type: text
-                    x: pos.x,
-                    y: pos.y,
-                    text: text,
-                    c: currentColor,
-                    ts: firebase.database.ServerValue.TIMESTAMP,
-                    u: myPresenceId
-                });
-            }
-        }
-
-        // ============================================
-        // EVENT LISTENERS (Canvas)
-        // ============================================
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-        canvas.addEventListener('click', addText);
-
-        // Touch events untuk mobile
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing);
-        canvas.addEventListener('touchcancel', stopDrawing);
-
-        // ============================================
-        // TOOLBAR
-        // ============================================
-        window.setTool = function(tool) {
-            currentTool = tool;
-            
-            // Update tampilan tombol
-            document.querySelectorAll('.tool-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`tool-${tool}`).classList.add('active');
-            
-            // Update cursor
-            if (tool === 'text') {
-                canvas.style.cursor = 'text';
-            } else {
-                canvas.style.cursor = 'crosshair';
-            }
-        };
-
-        // Color picker
-        document.getElementById('colorPicker').addEventListener('input', (e) => {
-            currentColor = e.target.value;
+        // ===== REAL-TIME DENGAN SERVER PUBLIK =====
+        // Gunakan server publik untuk relay data
+        const socket = io('wss://websocket-relay.fly.dev', {
+            transports: ['websocket']
         });
-
-        // Hapus semua
-        window.clearCanvas = function() {
-            if (confirm('Hapus SEMUA goresan dari mural ini?')) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                strokesRef.remove(); // Hapus dari database
-            }
-        };
-
-        // Copy link
-        window.copyRoomLink = function() {
-            const link = window.location.href;
-            navigator.clipboard.writeText(link).then(() => {
-                alert('✅ Link mural dicopy! Bagikan ke siapa saja.');
-            }).catch(() => {
-                // Fallback
-                prompt('📋 Copy link ini:', link);
-            });
-        };
-
-        // ============================================
-        // 🔥 REAL-TIME SYNC (Inti Mural Komunitas)
-        // ============================================
         
-        // Hapus semua listener lama (kalau ada)
-        strokesRef.off();
-
-        // 1. MUAT SEMUA GORESAN YANG ADA (Saat pertama buka)
-        strokesRef.once('value', (snapshot) => {
-            // Gambar ulang dari awal (biar bersih)
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        socket.on('connect', () => {
+            console.log('Terhubung ke server!');
+            socket.emit('join-room', ROOM_ID);
             
-            let count = 0;
-            snapshot.forEach((childSnapshot) => {
-                const data = childSnapshot.val();
-                
-                if (data.t === 't') { // Text
-                    ctx.font = '20px Arial';
-                    ctx.fillStyle = data.c;
-                    ctx.fillText(data.text, data.x, data.y);
-                    count++;
-                } else if (data.t === 'd') { // Draw
-                    ctx.strokeStyle = data.c;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(data.x1, data.y1);
-                    ctx.lineTo(data.x2, data.y2);
-                    ctx.stroke();
-                    count++;
-                }
-            });
-            console.log(`✨ Memuat ${count} goresan dari Firebase`);
-            document.getElementById('connectionStatus').textContent = `🟢 Terhubung (${count} goresan)`;
+            // Minta data yang sudah ada
+            socket.emit('request-data', ROOM_ID);
         });
-
-        // 2. DENGARKAN GORESAN BARU (Real-time dari user lain)
-        strokesRef.on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            
-            // Opsional: Jangan gambar ulang goresan dari diri sendiri (biar tidak dobel)
-            // Tapi untuk mural, kita gambar semua agar sinkron sempurna
-            // if (data.u === myPresenceId) return; // Uncomment kalau mau skip punya sendiri
-
-            if (data.t === 't') { // Text
-                ctx.font = '20px Arial';
-                ctx.fillStyle = data.c;
-                ctx.fillText(data.text, data.x, data.y);
-                console.log('📝 Teks baru:', data.text);
-            } else if (data.t === 'd') { // Draw
-                ctx.strokeStyle = data.c;
+        
+        // Terima data dari user lain
+        socket.on('draw-data', (data) => {
+            if (data.type === 'draw') {
+                ctx.strokeStyle = data.color;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(data.x1, data.y1);
                 ctx.lineTo(data.x2, data.y2);
                 ctx.stroke();
-                console.log('✏️ Goresan baru');
+            } else if (data.type === 'text') {
+                ctx.font = '20px Arial';
+                ctx.fillStyle = data.color;
+                ctx.fillText(data.text, data.x, data.y);
+            }
+        });
+        
+        // Terima data history saat join
+        socket.on('history-data', (history) => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            history.forEach(data => {
+                if (data.type === 'draw') {
+                    ctx.strokeStyle = data.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(data.x1, data.y1);
+                    ctx.lineTo(data.x2, data.y2);
+                    ctx.stroke();
+                } else if (data.type === 'text') {
+                    ctx.font = '20px Arial';
+                    ctx.fillStyle = data.color;
+                    ctx.fillText(data.text, data.x, data.y);
+                }
+            });
+        });
+        
+        // Update user count
+        socket.on('user-count', (count) => {
+            document.getElementById('userCount').textContent = `👥 ${count} online`;
+        });
+
+        // ===== EVENT LISTENERS =====
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentTool === 'draw') {
+                isDrawing = true;
+                const pos = getMousePos(e);
+                lastX = pos.x;
+                lastY = pos.y;
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 2;
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing || currentTool !== 'draw') return;
+            
+            const pos = getMousePos(e);
+            
+            // Gambar lokal
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            
+            // Kirim ke server
+            socket.emit('draw', {
+                room: ROOM_ID,
+                type: 'draw',
+                x1: lastX,
+                y1: lastY,
+                x2: pos.x,
+                y2: pos.y,
+                color: currentColor
+            });
+            
+            lastX = pos.x;
+            lastY = pos.y;
+        });
+        
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+        
+        canvas.addEventListener('click', (e) => {
+            if (currentTool !== 'text') return;
+            
+            const pos = getMousePos(e);
+            const text = prompt('Tulis pesan:', '');
+            
+            if (text) {
+                // Gambar lokal
+                ctx.font = '20px Arial';
+                ctx.fillStyle = currentColor;
+                ctx.fillText(text, pos.x, pos.y);
+                
+                // Kirim ke server
+                socket.emit('draw', {
+                    room: ROOM_ID,
+                    type: 'text',
+                    x: pos.x,
+                    y: pos.y,
+                    text: text,
+                    color: currentColor
+                });
             }
         });
 
-        // 3. HAPUS SEMUA (kalau ada yang clear)
-        strokesRef.on('child_removed', () => {
-            // Ada yang hapus semua, kita bersihkan canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            console.log('🗑️ Mural dibersihkan');
+        // ===== TOOLBAR =====
+        window.setTool = function(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(tool === 'draw' ? 'toolDraw' : 'toolText').classList.add('active');
+            canvas.style.cursor = tool === 'draw' ? 'crosshair' : 'text';
+        };
+        
+        document.getElementById('colorPicker').addEventListener('input', (e) => {
+            currentColor = e.target.value;
         });
+        
+        window.clearCanvas = function() {
+            if (confirm('Hapus semua?')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                socket.emit('clear-room', ROOM_ID);
+            }
+        };
+        
+        socket.on('room-cleared', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        window.copyLink = function() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert('✅ Link disalin! Buka di device lain untuk test real-time');
+            });
+        };
 
-        // ============================================
-        // READY!
-        // ============================================
-        console.log('🎨 Mural Komunitas siap! Room:', ROOM_ID);
-        console.log('🔗 Share link:', window.location.href);
+        console.log('Share link:', window.location.href);
     </script>
 </body>
 </html>
