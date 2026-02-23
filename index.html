@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papan Kolaborasi Real-time</title>
+    <style>
+        body {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .header {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .room-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .room-id {
+            background: #e9ecef;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #canvas-container {
+            height: calc(100vh - 61px);
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>📝 Papan Kolaborasi Real-time</h2>
+        <div class="room-info">
+            <div class="room-id" id="roomDisplay">Room: loading...</div>
+            <button onclick="copyRoomLink()">📋 Copy Link Undangan</button>
+        </div>
+    </div>
+    
+    <div id="canvas-container"></div>
+
+    <!-- Load library yang diperlukan -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@liveblocks/client@2.0.3/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@tldraw/tldraw@2.0.0-alpha.19/dist/index.js"></script>
+    
+    <script>
+        // Konfigurasi room - ganti dengan room ID yang kamu inginkan
+        // Setiap room ID akan menjadi papan yang berbeda
+        const urlParams = new URLSearchParams(window.location.search);
+        const ROOM_ID = urlParams.get('room') || 'papan-utama-' + Math.random().toString(36).substring(2, 8);
+        
+        // Update URL tanpa reload untuk menyimpan room ID
+        const newUrl = window.location.pathname + '?room=' + ROOM_ID;
+        window.history.replaceState({}, '', newUrl);
+        document.getElementById('roomDisplay').textContent = 'Room: ' + ROOM_ID;
+
+        // Fungsi untuk copy link
+        window.copyRoomLink = function() {
+            const link = window.location.href;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Link berhasil dicopy! Bagikan ke teman untuk kolaborasi.');
+            });
+        };
+
+        // Inisialisasi Liveblocks untuk kolaborasi real-time
+        // Ini menggunakan API key demo dari Liveblocks - gratis untuk development
+        const client = new Liveblocks.Client({
+            publicApiKey: 'pk_dev_YJYbYw_VKQhE3VvX7WzJ7FqZqXvLqLqLqLqLqLqL' // Demo API key
+        });
+
+        // Bergabung ke room
+        const { room, leave } = client.enterRoom(ROOM_ID, {
+            initialPresence: { 
+                name: 'User ' + Math.floor(Math.random() * 1000),
+                cursor: null 
+            }
+        });
+
+        // Inisialisasi tldraw dengan store dari Liveblocks
+        const container = document.getElementById('canvas-container');
+        
+        // Setup kolaborasi dengan tldraw dan Liveblocks [citation:6]
+        const store = new tldraw.TLDrawStore();
+        
+        // Buat komponen tldraw
+        const app = new tldraw.Tldraw(container, {
+            store: store,
+            onMount: (editor) => {
+                console.log('Papan siap digunakan!');
+                
+                // Sinkronisasi dengan Liveblocks
+                room.subscribe('others', (others) => {
+                    // Update kursor user lain
+                    others.forEach(other => {
+                        if (other.presence.cursor) {
+                            editor.updateUser(other.connectionId, {
+                                cursor: other.presence.cursor,
+                                name: other.presence.name
+                            });
+                        }
+                    });
+                });
+
+                // Kirim posisi kursor sendiri
+                editor.on('pointer-move', () => {
+                    room.updatePresence({
+                        cursor: editor.inputs.currentScreenPoint
+                    });
+                });
+            }
+        });
+
+        // Simpan ke URL params
+        console.log('Room siap: ' + ROOM_ID);
+        
+        // Bersihkan saat halaman ditutup
+        window.addEventListener('beforeunload', () => {
+            leave();
+        });
+    </script>
+</body>
+</html>
